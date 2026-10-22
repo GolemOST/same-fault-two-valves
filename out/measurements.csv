@@ -1,0 +1,21 @@
+fault,type,disturbed,detection_rate_any_pct,detection_rate_t2_pct,detection_rate_spe_pct,pre_fault_flag_pct,runs_alarmed_of_20,median_alarm_delay_min
+1,Step,"A/C ratio of stream 4, B composition constant",99.76,99.44,99.74,1.91,20,15.0
+2,Step,"B composition of stream 4, A/C ratio constant",98.79,98.71,98.14,1.91,20,42.0
+3,Step,D feed (stream 2) temperature,2.02,1.13,0.91,1.91,4,1491.0
+4,Step,Reactor cooling water inlet temperature,99.94,37.69,99.83,1.91,20,9.0
+5,Step,Condenser cooling water inlet temperature,27.49,24.12,14.25,1.91,20,9.0
+6,Step,A feed loss (stream 1),100.0,99.09,100.0,1.91,20,9.0
+7,Step,C header pressure loss (stream 4),100.0,100.0,100.0,1.91,20,9.0
+8,Random,A/B/C composition of stream 4,96.96,96.53,89.64,1.91,20,66.0
+9,Random,D feed (stream 2) temperature,2.07,1.16,0.93,1.91,5,1962.0
+10,Random,C feed (stream 4) temperature,41.66,17.79,31.02,1.91,20,136.5
+11,Random,Reactor cooling water inlet temperature,77.19,48.56,58.94,1.91,20,33.0
+12,Random,Condenser cooling water inlet temperature,98.81,98.28,95.28,1.91,20,25.5
+13,Drift,Reaction kinetics,94.95,93.99,93.87,1.91,20,126.0
+14,Stiction,Reactor cooling water valve,99.98,99.49,92.03,1.91,20,9.0
+15,Stiction,Condenser cooling water valve,2.34,1.26,1.11,1.91,8,1072.5
+16,Random,(unknown) Heat transfer within the stripper heat exchanger,29.68,6.34,25.39,1.91,20,118.5
+17,Random,(unknown) Heat transfer within the reactor,92.45,74.96,92.18,1.91,20,100.5
+18,Random,(unknown) Heat transfer within the condenser,93.9,92.75,93.76,1.91,20,160.5
+19,Stiction,"(unknown) Compressor recycle, separator and stripper underflow, stripper steam valves",17.8,10.42,8.0,1.91,20,291.0
+20,Random,(unknown),55.95,24.43,53.74,1.91,20,120.0

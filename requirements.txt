@@ -1,0 +1,8 @@
+# Versions this was run and checked with (Python 3.14, Windows 10).
+numpy==2.4.4
+pandas==3.0.3
+scipy==1.18.1
+pyarrow==24.0.0
+requests==2.33.1
+rdata==1.1.0        # reference reader for 02_extract.py --check only (MIT)
+playwright==1.59.0  # 08_render_check.py and 09_og_card.py only

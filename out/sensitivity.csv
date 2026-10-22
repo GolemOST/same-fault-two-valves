@@ -1,0 +1,5 @@
+variance_target,confidence,components,normal_day_flag_pct,fault_14_flag_pct,fault_15_flag_pct
+0.8,0.99,25,1.98,99.98,2.53
+0.9,0.99,31,1.95,99.98,2.34
+0.95,0.99,36,2.04,99.98,2.64
+0.9,0.999,31,0.19,99.96,0.28

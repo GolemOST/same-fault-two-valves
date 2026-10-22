@@ -1,0 +1,11 @@
+# The public dataset (~1.4 GB) and its Parquet copy: re-create with 01_download.py + 02_extract.py
+data/
+# Built files: re-create with 07_build_page.py / 08_render_check.py
+page/index.html
+page/og-card.png
+page/preview/
+page/shots/
+# Optional local settings (extra copy-sweep words, path to a website folder)
+pipeline/local_config.json
+__pycache__/
+*.pyc

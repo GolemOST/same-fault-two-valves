@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same Fault, Two Valves · Raymond P. Capisinio</title>
+<meta name="description" content="An experiment on a public benchmark plant. Two cooling-water valves start sticking at 08:00. A standard PCA monitor raises an alarm on one within {{F14_ALARM_DELAY}} minutes and cannot tell the other apart from a normal day.">
+<link rel="canonical" href="https://raymondcapisinio.com/lab/same-fault-two-valves/">
+<meta name="theme-color" content="#0B1220">
+<meta name="author" content="Raymond P. Capisinio">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Raymond P. Capisinio">
+<meta property="og:title" content="Same Fault, Two Valves">
+<meta property="og:description" content="Same sticking valve, two places on a public benchmark plant. One alarm within {{F14_ALARM_DELAY}} minutes. One no different from a normal day. Measured, not assumed.">
+<meta property="og:url" content="https://raymondcapisinio.com/lab/same-fault-two-valves/">
+<meta property="og:image" content="https://raymondcapisinio.com/lab/same-fault-two-valves/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://raymondcapisinio.com/lab/same-fault-two-valves/og-card.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Same Fault, Two Valves",
+  "description": "An experiment on a public benchmark plant: what a standard process monitor can and cannot see.",
+  "datePublished": "{{PUBLISH_DATE}}",
+  "author": {"@type": "Person", "name": "Raymond P. Capisinio", "url": "https://raymondcapisinio.com/"},
+  "mainEntityOfPage": "https://raymondcapisinio.com/lab/same-fault-two-valves/",
+  "isBasedOn": "https://doi.org/10.7910/DVN/6C3JR1"
+}
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B1220'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%234A6B8A' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='%23C8961E'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/styles.css?v={{CSS_VERSION}}">
+<style>
+/* Page-scoped: this page adds no rule to styles.css, so the 4-hour CSS cache trap cannot fire.
+   Chart colours validated with the dataviz validator, both modes, all pairs (2026-10-22). */
+:root{--c-run:#3987e5;--c-twin:#199e70;--c-note:#c98500}
+@media (prefers-color-scheme: light){:root:not([data-theme]){--c-run:#2a78d6;--c-twin:#168f63;--c-note:#A9781A}}
+:root[data-theme="light"]{--c-run:#2a78d6;--c-twin:#168f63;--c-note:#A9781A}
+:root[data-theme="dark"]{--c-run:#3987e5;--c-twin:#199e70;--c-note:#c98500}
+
+.lab-fig{margin:34px 0 40px;max-width:none}
+.lc-legend{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:6px 22px;
+  font-family:var(--font-mono);font-size:.74rem;color:var(--dim)}
+.lc-legend li{display:flex;align-items:center;gap:8px}
+.lc-legend svg{flex:none}
+.lc-wrap{position:relative}
+.lc-wrap svg.lc{display:block;width:100%;height:auto;touch-action:pan-y}
+.lc text{font-family:var(--font-mono);font-size:11px;fill:var(--lab-dim)}
+.lc .lc-grid{stroke:var(--line);stroke-width:1}
+.lc .lc-base{stroke:var(--line-strong);stroke-width:1}
+.lc .lc-ref{stroke:var(--ink);stroke-opacity:.55;stroke-width:1}
+.lc .lc-ref-lab{fill:var(--ink)}
+.lc .lc-onset{stroke:var(--lab-dim);stroke-width:1;stroke-dasharray:2 3}
+.lc .lc-run{stroke:var(--c-run);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.lc .lc-twin{stroke:var(--c-twin);stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+.lc .lc-pin{stroke:var(--c-note);stroke-width:2}
+.lc .lc-pindot{fill:var(--c-note);stroke:var(--ground);stroke-width:2}
+.lc .lc-pin-lab{fill:var(--lab-gold)}
+.lc .lc-cross{stroke:var(--ink);stroke-opacity:.5;stroke-width:1}
+.lc .lc-hit{fill:transparent;cursor:crosshair}
+.lc .lc-hit:focus{outline:none}
+.lc-wrap:focus-within{outline:2px solid var(--gold);outline-offset:4px;border-radius:2px}
+.lc-tip{position:absolute;top:0;left:0;pointer-events:none;opacity:0;transition:opacity .12s;
+  background:var(--panel);border:1px solid var(--line-strong);border-radius:3px;padding:8px 10px;
+  font-family:var(--font-mono);font-size:.72rem;line-height:1.5;color:var(--dim);white-space:nowrap;z-index:2}
+.lc-tip.on{opacity:1}
+.lc-tip .tt-time{color:var(--ink);margin-bottom:3px}
+.lc-tip .tt-row{display:flex;align-items:center;gap:8px}
+.lc-tip .tt-row b{color:var(--ink);font-weight:600;min-width:4.5em;text-align:right}
+.lc-tip .tt-key{display:inline-block;width:14px;height:0;border-top:2px solid}
+.lab-fig figcaption{font-family:var(--font-mono);font-size:.74rem;line-height:1.65;color:var(--dim);
+  margin-top:14px;padding-left:14px;border-left:2px solid var(--line-strong);max-width:62ch}
+
+.fieldnote{margin:22px 0;padding:16px 18px;max-width:58ch;background:var(--panel-2);
+  border:1px solid var(--line-strong);border-left:3px solid var(--gold);border-radius:2px}
+.fieldnote .fn-head{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--font-mono);font-size:.68rem;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.fieldnote .fn-head .fn-fic{color:var(--gold)}
+.fieldnote p{margin:0!important;font-family:var(--font-mono);font-size:.92em;line-height:1.6;color:var(--ink)}
+
+.tablewrap{overflow-x:auto;margin:26px 0 30px;-webkit-overflow-scrolling:touch}
+.lab-table{width:100%;border-collapse:collapse;font-size:.9em;line-height:1.5;min-width:520px}
+.lab-table th{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dim);font-weight:500;text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--line-strong)}
+.lab-table td{padding:12px 12px 12px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.lab-table td.q{font-family:var(--font-display);font-weight:600}
+.lab-table td.with{border-left:1px solid var(--line-strong);padding-left:12px}
+.lab-table th.with{padding-left:13px}
+.labcontact{color:var(--dim);font-size:.94rem;max-width:64ch;margin-top:30px}
+.lab-table.num td,.lab-table.num th{font-variant-numeric:tabular-nums}
+.lab-table.num td.r,.lab-table.num th.r{text-align:right}
+.lab-table tr.hl td{color:var(--ink);font-weight:600}
+.article .body details{margin:18px 0;max-width:none}
+.article .body details summary{cursor:pointer;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--dim);padding:8px 0}
+.article .body details summary:hover{color:var(--gold)}
+.article .body details[open] summary{color:var(--ink)}
+.article .body ul.method{padding-left:1.1em;max-width:64ch}
+.article .body ul.method li{margin-bottom:12px}
+.sources{font-family:var(--font-mono);font-size:.72rem;line-height:1.8;color:var(--dim);max-width:64ch;margin-top:36px}
+.sources a{color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.sources a:hover{color:var(--gold)}
+@media (max-width:620px){.lc text{font-size:10px}}
+</style>
+</head>
+<body class="reading">
+
+<button class="toggle" id="themeBtn" aria-label="Night Shift — switch theme">🌙 Night Shift</button>
+
+<header class="arthead">
+  <div class="wrap">
+    <a class="backlink" href="/">← Raymond P. Capisinio</a>
+  </div>
+</header>
+
+<main>
+  <article class="article">
+    <div class="wrap">
+      <p class="artmeta mono"><span class="no">LAB 01</span> · {{PUBLISH_DATE_DOTS}} · An experiment on a public benchmark</p>
+      <h1>Same Fault, Two Valves</h1>
+      <p class="dek">Two cooling-water valves start sticking at 08:00 on a simulated plant. A standard monitor raises an alarm on one within {{F14_ALARM_DELAY}} minutes. The other, it cannot tell apart from a normal day.</p>
+
+      <div class="body">
+        <p class="lead-para">I wanted to see, with real numbers, how much of a plant's trouble shows up in its recorded data. So I ran an experiment on a public benchmark: a simulated chemical plant that process-control researchers have worked with since 1993. It records 41 measurements and 11 controller outputs every three minutes.</p>
+
+        <p>I gave it the same fault in two places: a cooling-water valve that sticks, once on the reactor and once on the condenser, both from 08:00. A standard monitor raised an alarm on the first within {{F14_ALARM_DELAY}} minutes. On the second, over the next forty hours, it flagged about as often as it does on a normal day.</p>
+
+        <h2><span class="sn">01</span>One plant, run twice</h2>
+
+        <p>The data is a public dataset (Rieth and colleagues, 2017) of 21,000 simulated runs of the Tennessee Eastman process. I scored faults on its 48-hour test runs. In those, each faulty run has a twin: for the first eight hours it matches a normal run value for value. At 08:00 the fault switches on and the two days split. I checked this for all {{TWIN_RUNS_CHECKED}} faulty runs used here.</p>
+
+        <p>So each chart below shows the same day twice, with the fault and without it.</p>
+
+        <h2><span class="sn">02</span>A standard monitor, trained on normal running</h2>
+
+        <p>I trained a standard monitor from the process-monitoring textbooks: principal component analysis (PCA) on all 52 recorded values, fitted to 250,000 samples of normal operation. It flags any sample that falls outside what normal looked like, at a 99% limit. Three flags in a row count as an alarm.</p>
+
+        <div class="bigstat"><span class="num">{{NORMAL_FLAG}}%</span><span class="cap">of samples flagged on a normal day, measured on 500 normal runs it had never seen. In {{NORMAL_RUNS_SUSTAINED}} of those {{NORMAL_RUNS}} two-day runs it still raised at least one alarm.</span></div>
+
+        <h2><span class="sn">03</span>Valve one: the reactor's cooling water</h2>
+
+        <p>At 08:00 the reactor's cooling-water valve starts to stick, and the reactor temperature starts to swing with it. The first sample after 08:00 is already flagged. The alarm follows at {{F14_ALARM_TIME}}.</p>
+
+        <figure class="lab-fig" id="fig-a">
+          <ul class="lc-legend" aria-hidden="true">
+            <li><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--c-run)" stroke-width="2"/></svg>Sticking valve (run {{F14_RUN}})</li>
+            <li><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--c-twin)" stroke-width="1.5" stroke-dasharray="5 4"/></svg>Same day, no fault</li>
+            <li><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="var(--c-note)"/></svg>Field note (fiction)</li>
+          </ul>
+          <div class="lc-wrap" data-chart="a"></div>
+          <figcaption>Monitor index over two days. 1.0 is the flag limit; above it, a sample is flagged. Run {{F14_RUN}} of 20, picked by rule: the run whose flag rate is closest to the median of the 20, the lowest-numbered on a tie.</figcaption>
+          <details><summary>Show the numbers, hour by hour</summary><div class="tablewrap" data-table="a"></div></details>
+        </figure>
+
+        <div class="bigstat"><span class="num">{{F14_ALARM_DELAY}} min</span><span class="cap">from the valve sticking to the alarm, the third flag in a row. All 20 runs alarmed; {{F14_RATE}}% of samples after 08:00 were flagged.</span></div>
+
+        <p>The monitor itself only says that something is off. To see which readings moved, I compared each run with its normal twin, which no real plant has. The three that moved most are the reactor cooling-water valve signal ({{F14_M1}}× its normal spread), reactor temperature ({{F14_M2}}×) and the reactor cooling-water outlet temperature ({{F14_M3}}×). Nothing else moved more than {{F14_REST_PCT}}%.</p>
+
+        <h2><span class="sn">04</span>Valve two: the condenser's cooling water</h2>
+
+        <p>Same fault, same 08:00, different valve. This time the index stays where a normal day keeps it.</p>
+
+        <figure class="lab-fig" id="fig-b">
+          <ul class="lc-legend" aria-hidden="true">
+            <li><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--c-run)" stroke-width="2"/></svg>Sticking valve (run {{F15_RUN}})</li>
+            <li><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--c-twin)" stroke-width="1.5" stroke-dasharray="5 4"/></svg>Same day, no fault</li>
+            <li><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="var(--c-note)"/></svg>Field note (fiction)</li>
+          </ul>
+          <div class="lc-wrap" data-chart="b"></div>
+          <figcaption>Monitor index, zoomed in on the flag limit. The dashed normal twin lies over the sticking-valve run for most of the two days. Run {{F15_RUN}} of 20, picked by the same rule.</figcaption>
+          <details><summary>Show the numbers, hour by hour</summary><div class="tablewrap" data-table="b"></div></details>
+        </figure>
+
+        <div class="bigstat"><span class="num">{{F15_RATE}}%</span><span class="cap">of samples flagged after 08:00, across all 20 runs. Normal runs over the same hours: {{NORMAL_FLAG_AFTER}}%. {{F15_RUNS_ALARMED}} of the 20 runs raised an alarm at some point; so did {{TWINS_ALARMED}} of their 20 normal twins.</span></div>
+
+        <p>There is a trace, if you know where to look. Across the 20 runs, the condenser cooling-water outlet temperature is the value that widens most against its twin, by a median of {{F15_M1}} times.</p>
+
+        <figure class="lab-fig" id="fig-c">
+          <ul class="lc-legend" aria-hidden="true">
+            <li><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--c-run)" stroke-width="2"/></svg>Sticking valve (run {{F15_RUN}})</li>
+            <li><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--c-twin)" stroke-width="1.5" stroke-dasharray="5 4"/></svg>Same day, no fault</li>
+          </ul>
+          <div class="lc-wrap" data-chart="c"></div>
+          <figcaption>How much the condenser cooling-water outlet temperature wanders within each hour (standard deviation, {{F15_TREND_UNIT}}), run {{F15_RUN}}. In this run it widens {{F15_RUN_SPREAD}} times after 08:00, and a few other values widen about as much. It only stands out across all 20 runs.</figcaption>
+          <details><summary>Show the numbers, hour by hour</summary><div class="tablewrap" data-table="c"></div></details>
+        </figure>
+
+        <h2><span class="sn">05</span>Quiet is the right output, for the wrong reason</h2>
+
+        <p>Researchers who sort these faults put the condenser valve among the <em>controllable</em> ones: the control system compensates and the process state barely moves. For faults like that, they write, a monitor's flag rate "should ideally be as low as" its false-alarm rate, so operators are not distracted (Sun and colleagues, 2020; they sort the faults from prior knowledge, on a different dataset from the same simulator).</p>
+
+        <p>So staying quiet is the right output here. PCA did not decide that, though. The same paper notes that PCA cannot tell whether a fault is controllable or not.</p>
+
+        <p>What this monitor lacks is concrete. The valve's real stem position is not one of the 52 recorded values, and the recorded signal for that valve, XMV(11), barely changes: its spread after 08:00 is {{F15_XMV11_RATIO}} times its twin's. Methods built for faults like this do better. Du and Du (2018) report detecting it, and two other faults most methods miss, from the same kind of process data.</p>
+
+        <h2><span class="sn">06</span>What a person on rounds would see</h2>
+
+        <p>A sticking valve has a look: the stem holds, then jumps, instead of travelling smoothly. Someone standing at it at the right moment can see it.</p>
+
+        <p>The simulator has no people in it, so I wrote these two field notes myself, the way a round could plausibly record them. They are fiction, and so are the gold marks on the charts above, which sit at the minute each note was written.</p>
+
+        <div class="fieldnote">
+          <div class="fn-head"><span class="fn-fic">Fiction</span><span>Field note · {{NOTE14_TIME}} · valve one run</span></div>
+          <p>{{NOTE14_TEXT}}</p>
+        </div>
+
+        <div class="fieldnote">
+          <div class="fn-head"><span class="fn-fic">Fiction</span><span>Field note · {{NOTE15_TIME}} · valve two run</span></div>
+          <p>{{NOTE15_TEXT}}</p>
+        </div>
+
+        <h2><span class="sn">07</span>What each source can answer at hour 48</h2>
+
+        <p>Valve two, the run where the monitor stays quiet. Three questions, asked of this PCA monitor and then of the monitor plus one fictional field note.</p>
+
+        <div class="tablewrap">
+          <table class="lab-table">
+            <thead><tr><th scope="col">Question</th><th scope="col">This PCA monitor</th><th scope="col" class="with">Plus one fictional note</th></tr></thead>
+            <tbody>
+              <tr><td class="q">Is anything wrong?</td><td>Nothing it can separate from normal: {{F15_RUN_RATE}}% of samples flagged in this run, {{F15_TWIN_RATE}}% in its normal twin.</td><td class="with">Yes: the note reports the condenser cooling-water valve sticking.</td></tr>
+              <tr><td class="q">Which equipment?</td><td>It does not say. A flag is not a location.</td><td class="with">The condenser cooling-water valve.</td></tr>
+              <tr><td class="q">Since when?</td><td>It does not say.</td><td class="with">No later than {{NOTE15_TIME}}, when the note was written.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>For valve one, the monitor answers the first and third on its own: something is wrong, since {{F14_ALARM_TIME}}. The note adds which valve, and that its stem is sticking.</p>
+
+        <h2><span class="sn">08</span>How this was done</h2>
+
+        <ul class="method">
+          <li><strong>Data.</strong> Rieth, Amsel, Tran and Cook (2017), Harvard Dataverse, public domain. The three files used were checksum-verified at download: 500 normal runs to train, 500 more to measure false alarms, and test runs 1 to 20 of each of the 20 faults.</li>
+          <li><strong>Names.</strong> Recorded values, fault types and the short descriptions of faults 16 to 20 follow the model code in N. L. Ricker's Tennessee Eastman archive, which marks 16 to 20 as unknown. Where that code says the separator's cooling water, I say the condenser's, as Du and Du do.</li>
+          <li><strong>Monitor.</strong> PCA on the 52 standardised values, {{COMPONENTS}} components ({{CPV}}% of the variance), Hotelling T² and SPE limits at 99%. A sample is flagged when either crosses its limit. An alarm is three flags in a row, timed at the third.</li>
+          <li><strong>Measured.</strong> The flag rate on 480,000 normal samples, and the flag rate, alarm count and alarm delay for all 20 faults. Full table below.</li>
+          <li><strong>Checked.</strong> A second implementation, written separately, reproduced every measured number quoted in the text. Changing the tuning (80, 90 or 95% of the variance, or a 99.9% limit) does not change the picture.</li>
+          <li><strong>Tools.</strong> Python (numpy, pandas, scipy). The 837 MB R data file is read by a small streaming reader written for this, which matched a reference reader value for value on the two normal-running files. Charts are plain SVG. I wrote the pipeline with an AI coding assistant, to my specification; every number on the page comes from that code and its separate re-check.</li>
+          <li><strong>Code.</strong> The whole pipeline is public <a href="https://github.com/GolemOST/same-fault-two-valves" rel="noopener">on GitHub</a>, with the steps to download the data and re-run every number yourself.</li>
+          <li><strong>Not claimed.</strong> This is a simulation, not a plant, and it tests one kind of monitor. The field notes are fiction. Neither the dataset's authors nor Pacific Science &amp; Engineering Group reviewed or endorse this page.</li>
+        </ul>
+
+        <details>
+          <summary>All 20 faults, measured</summary>
+          <div class="tablewrap">
+            <table class="lab-table num">
+              <thead><tr><th scope="col">Fault</th><th scope="col">Type</th><th scope="col">What is disturbed</th><th scope="col" class="r">Flagged after 08:00</th><th scope="col" class="r">Runs that alarmed</th><th scope="col" class="r">Median alarm delay</th></tr></thead>
+              <tbody>
+{{FAULT_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details>
+          <summary>Tuning sweep</summary>
+          <div class="tablewrap">
+            <table class="lab-table num">
+              <thead><tr><th scope="col" class="r">Variance kept</th><th scope="col" class="r">Limit</th><th scope="col" class="r">Components</th><th scope="col" class="r">Normal day</th><th scope="col" class="r">Valve one</th><th scope="col" class="r">Valve two</th></tr></thead>
+              <tbody>
+{{SENS_ROWS}}
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <div class="takeaway">
+          <span class="tlabel">Take this onto shift</span>
+          <p>Pick the three control valves you would least like to see stick. For each one, ask: if it stuck tonight, which screen would show it? If the honest answer is none, the first sign will be what someone notices walking past.</p>
+        </div>
+
+        <p>Which valve on your plant would you bet is sticking right now, with every screen reading normal?</p>
+
+        <p class="sources">Sources: <a href="https://doi.org/10.7910/DVN/6C3JR1" rel="noopener">Rieth, Amsel, Tran, Cook (2017), Additional Tennessee Eastman Process Simulation Data for Anomaly Detection Evaluation, Harvard Dataverse</a> · Downs &amp; Vogel (1993), A plant-wide industrial process control problem, Computers &amp; Chemical Engineering 17(3) · <a href="https://depts.washington.edu/control/LARRY/TE/download.html" rel="noopener">N. L. Ricker, Tennessee Eastman Challenge Archive</a> · <a href="https://arxiv.org/abs/1911.04386" rel="noopener">Sun, Paiva, Xu, Sundaram, Braatz (2020), Fault Detection and Identification using Bayesian Recurrent Neural Networks</a> · <a href="https://skoge.folk.ntnu.no/prost/proceedings/ADCHEM-2018/media/files/0146.pdf" rel="noopener">Du &amp; Du (2018), ADCHEM</a></p>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <nav class="artnav" aria-label="More writing">
+        <a href="/#writing">← All writing</a>
+      </nav>
+
+      <p class="labcontact">Ran this with a different monitor, or got a different answer? I would like to see it: <a href="mailto:hello@raymondcapisinio.com?subject=LAB%2001%20Same%20Fault%2C%20Two%20Valves">hello@raymondcapisinio.com</a></p>
+    </div>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p class="signoff">Handed over clean. Nothing missed.</p>
+    <nav class="flinks" aria-label="Footer">
+      <a href="/#writing">Writing</a>
+      <a href="/#about">About</a>
+      <a href="https://www.linkedin.com/in/raymond-capisinio-19a5aa1bb" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="mailto:hello@raymondcapisinio.com">Email</a>
+    </nav>
+    <p class="fmeta">© 2026 Raymond P. Capisinio · Metallurgical Engineer<br>Night Shift edition</p>
+  </div>
+</footer>
+
+<script type="application/json" id="labdata">{{DATA_JSON}}</script>
+<script src="/app.js?v={{CSS_VERSION}}"></script>
+<script>
+/* Charts: plain SVG drawn from the JSON above, re-drawn at the container's real width so
+   text stays at true pixel size on phones. Hover or keyboard (arrow keys) moves a crosshair;
+   the tooltip lists every series at that time. With JS off, the hour-by-hour tables are
+   empty but every number in the text is static HTML. */
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var raw = document.getElementById('labdata');
+  if (!raw) return;
+  var data;
+  try { data = JSON.parse(raw.textContent); } catch (err) { return; }
+  var f14 = data.faults['14'], f15 = data.faults['15'];
+  var MIN = data.monitor.sample_minutes;            // 3
+  var NOTES = data.notes;                           // {"14": {"sample":..}, "15": {...}}
+
+  function hourOf(i) { return (i + 1) * MIN / 60; }  // sample index 0 -> 3 min
+  function clock(h) {
+    var day = Math.floor(h / 24) + 1, m = Math.round((h % 24) * 60);
+    var hh = Math.floor(m / 60), mm = m % 60;
+    if (hh === 24) { hh = 0; day += 1; }
+    return 'Day ' + day + ', ' + (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+  }
+  function el(tag, attrs, parent) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function txt(parent, x, y, s, cls, anchor) {
+    var t = el('text', { x: x, y: y, 'class': cls || '', 'text-anchor': anchor || 'start' }, parent);
+    t.textContent = s;
+    return t;
+  }
+
+  var CHARTS = {
+    a: { series: [{ name: 'Sticking valve', cls: 'lc-run', key: 'var(--c-run)', values: f14.index_fault },
+                  { name: 'Same day, no fault', cls: 'lc-twin', key: 'var(--c-twin)', values: f14.index_twin }],
+         yMin: 0, yMax: 20, ticks: [0, 5, 10, 15, 20], ref: 1, fmt: 2, unit: '',
+         label: 'Monitor index for the reactor cooling-water valve run', note: NOTES['14'] },
+    b: { series: [{ name: 'Sticking valve', cls: 'lc-run', key: 'var(--c-run)', values: f15.index_fault },
+                  { name: 'Same day, no fault', cls: 'lc-twin', key: 'var(--c-twin)', values: f15.index_twin }],
+         yMin: 0, yMax: 2, ticks: [0, 0.5, 1, 1.5, 2], ref: 1, fmt: 2, unit: '',
+         label: 'Monitor index for the condenser cooling-water valve run', note: NOTES['15'] },
+    c: { series: [{ name: 'Sticking valve', cls: 'lc-run', key: 'var(--c-run)', values: f15.spread_hourly.fault },
+                  { name: 'Same day, no fault', cls: 'lc-twin', key: 'var(--c-twin)', values: f15.spread_hourly.twin }],
+         hourly: true, auto: true, fmt: 3, unit: ' ' + f15.trend.unit,
+         label: 'Hourly spread of the ' + f15.trend.name.toLowerCase() + ' for the condenser valve run' }
+  };
+  var HOURS = 48;
+
+  // x position (hours) of point i: samples sit at the end of their 3-minute interval,
+  // hourly points at the middle of their hour.
+  function xh(cfg, i) { return cfg.hourly ? i + 0.5 : hourOf(i); }
+  function nearest(cfg, h) { return cfg.hourly ? Math.floor(h) : Math.round(h * 60 / MIN) - 1; }
+  function when(cfg, i) {
+    if (!cfg.hourly) return clock(hourOf(i));
+    return clock(i) + ' to ' + clock(i + 1).replace(/^Day \d+, /, '');
+  }
+
+  function range(cfg) {
+    if (!cfg.auto) return;
+    var hi = -Infinity;
+    cfg.series.forEach(function (s) { s.values.forEach(function (v) { if (v > hi) hi = v; }); });
+    var step = Math.pow(10, Math.floor(Math.log10(hi / 2)));
+    cfg.yMin = 0;
+    cfg.yMax = Math.ceil((hi * 1.08) / step) * step;
+    cfg.ticks = [];
+    var n = Math.round(cfg.yMax / step), stride = Math.max(1, Math.ceil(n / 5));
+    for (var k = 0; k <= n; k += stride) cfg.ticks.push(+(k * step).toFixed(6));
+  }
+
+  function draw(id) {
+    var cfg = CHARTS[id];
+    var box = document.querySelector('[data-chart="' + id + '"]');
+    if (!box) return;
+    range(cfg);
+    var W = Math.max(280, Math.round(box.clientWidth || 640));
+    var H = Math.round(Math.max(210, Math.min(320, W * 0.46)));
+    var m = { l: 44, r: cfg.ref !== undefined ? 46 : 14, t: 26, b: 30 };
+    var pw = W - m.l - m.r, ph = H - m.t - m.b;
+    var n = cfg.series[0].values.length, hours = HOURS;
+    function X(h) { return m.l + (h / hours) * pw; }
+    function Y(v) { return m.t + (1 - (Math.min(Math.max(v, cfg.yMin), cfg.yMax) - cfg.yMin) / (cfg.yMax - cfg.yMin)) * ph; }
+
+    box.innerHTML = '';
+    var svg = el('svg', { 'class': 'lc', viewBox: '0 0 ' + W + ' ' + H, width: W, height: H,
+                          role: 'img', 'aria-label': cfg.label }, box);
+    cfg.ticks.forEach(function (t) {
+      el('line', { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), 'class': t === cfg.yMin ? 'lc-base' : 'lc-grid' }, svg);
+      txt(svg, m.l - 8, Y(t) + 4, String(t), '', 'end');
+    });
+    // phones get a tick every 12 h: at 8 h spacing "Day 1" and "08:00" collide below ~520px
+    for (var h = 0, every = W < 520 ? 12 : 8; h <= 48; h += every) {
+      var lab = h % 24 === 0 ? 'Day ' + (h / 24 + 1) : (h % 24 < 10 ? '0' : '') + (h % 24) + ':00';
+      txt(svg, X(h), H - 9, lab, '', h === 0 ? 'start' : (h === 48 ? 'end' : 'middle'));
+    }
+    var onset = data.monitor.onset_sample * MIN / 60;
+    el('line', { x1: X(onset), x2: X(onset), y1: m.t, y2: m.t + ph, 'class': 'lc-onset' }, svg);
+    txt(svg, X(onset) + 6, m.t - 10, '08:00 valve starts sticking', '', 'start');
+    if (cfg.ref !== undefined) {
+      el('line', { x1: m.l, x2: W - m.r, y1: Y(cfg.ref), y2: Y(cfg.ref), 'class': 'lc-ref' }, svg);
+      txt(svg, W - m.r + 6, Y(cfg.ref) - 2, 'flag', 'lc-ref-lab', 'start');
+      txt(svg, W - m.r + 6, Y(cfg.ref) + 11, 'limit', 'lc-ref-lab', 'start');
+    }
+    var clip = 'clip-' + id;
+    var cp = el('clipPath', { id: clip }, el('defs', {}, svg));
+    el('rect', { x: m.l, y: m.t, width: pw, height: ph }, cp);
+    // run first, twin on top: before 08:00 they are the same numbers, so the dashed twin
+    // must sit over the solid run or it disappears and the reader cannot check the claim.
+    cfg.series.forEach(function (s) {
+      var d = '';
+      for (var i = 0; i < s.values.length; i++) d += (i ? 'L' : 'M') + X(xh(cfg, i)).toFixed(1) + ',' + Y(s.values[i]).toFixed(1);
+      el('path', { d: d, 'class': s.cls, 'clip-path': 'url(#' + clip + ')' }, svg);
+    });
+    if (cfg.note) {
+      var nh = hourOf(cfg.note.sample - 1);
+      el('line', { x1: X(nh), x2: X(nh), y1: m.t + 6, y2: m.t + ph, 'class': 'lc-pin' }, svg);
+      el('circle', { cx: X(nh), cy: m.t + 6, r: 5, 'class': 'lc-pindot' }, svg);
+      txt(svg, X(nh) + 9, m.t + 18, 'fictional note ' + cfg.note.time, 'lc-pin-lab', 'start');
+    }
+
+    // ---- hover / keyboard layer ----
+    var cross = el('line', { y1: m.t, y2: m.t + ph, 'class': 'lc-cross', visibility: 'hidden' }, svg);
+    var dots = cfg.series.map(function (s) {
+      return el('circle', { r: 4, fill: s.key, stroke: 'var(--ground)', 'stroke-width': 2, visibility: 'hidden' }, svg);
+    });
+    var hit = el('rect', { x: m.l, y: m.t, width: pw, height: ph, 'class': 'lc-hit', tabindex: 0,
+                           'aria-label': cfg.label + '. Use left and right arrow keys to read values.' }, svg);
+    var tip = document.createElement('div');
+    tip.className = 'lc-tip';
+    box.appendChild(tip);
+    var at = null;
+
+    function show(i) {
+      at = Math.max(0, Math.min(n - 1, i));
+      var x = X(xh(cfg, at));
+      cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
+      tip.textContent = '';
+      var head = document.createElement('div');
+      head.className = 'tt-time';
+      head.textContent = when(cfg, at);
+      tip.appendChild(head);
+      cfg.series.forEach(function (s, k) {
+        var v = s.values[at];
+        dots[k].setAttribute('cx', x); dots[k].setAttribute('cy', Y(v)); dots[k].setAttribute('visibility', 'visible');
+        var row = document.createElement('div');
+        row.className = 'tt-row';
+        var key = document.createElement('span');
+        key.className = 'tt-key';
+        key.style.borderTopColor = s.key;
+        if (s.cls === 'lc-twin') key.style.borderTopStyle = 'dashed';
+        var val = document.createElement('b');
+        val.textContent = v.toFixed(cfg.fmt) + cfg.unit;
+        var name = document.createElement('span');
+        name.textContent = s.name;
+        row.appendChild(key); row.appendChild(val); row.appendChild(name);
+        tip.appendChild(row);
+      });
+      tip.classList.add('on');
+      var bw = box.clientWidth, tw = tip.offsetWidth;
+      var scale = bw / W, left = x * scale + 14;
+      if (left + tw > bw) left = x * scale - tw - 14;
+      tip.style.transform = 'translate(' + Math.max(0, left) + 'px,' + (m.t * scale + 4) + 'px)';
+    }
+    function hide() {
+      tip.classList.remove('on');
+      cross.setAttribute('visibility', 'hidden');
+      dots.forEach(function (d) { d.setAttribute('visibility', 'hidden'); });
+    }
+    function fromEvent(ev) {
+      var r = svg.getBoundingClientRect();
+      var x = (ev.clientX - r.left) * (W / r.width);
+      return nearest(cfg, ((x - m.l) / pw) * hours);
+    }
+    hit.addEventListener('pointermove', function (ev) { show(fromEvent(ev)); });
+    hit.addEventListener('pointerdown', function (ev) { show(fromEvent(ev)); });
+    hit.addEventListener('pointerleave', hide);
+    hit.addEventListener('blur', hide);
+    hit.addEventListener('focus', function () { show(at === null ? nearest(cfg, 8) : at); });
+    hit.addEventListener('keydown', function (ev) {
+      var step = ev.shiftKey ? 20 : 1;
+      if (ev.key === 'ArrowRight') { show((at === null ? 0 : at) + step); ev.preventDefault(); }
+      else if (ev.key === 'ArrowLeft') { show((at === null ? 0 : at) - step); ev.preventDefault(); }
+      else if (ev.key === 'Escape') { hide(); }
+    });
+  }
+
+  function table(id) {
+    var cfg = CHARTS[id], host = document.querySelector('[data-table="' + id + '"]');
+    if (!host) return;
+    var t = document.createElement('table');
+    t.className = 'lab-table num';
+    var hr = t.createTHead().insertRow();
+    [cfg.hourly ? 'Hour' : 'Time'].concat(cfg.series.map(function (s) { return s.name; })).forEach(function (h, k) {
+      var th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = h + (k && cfg.unit ? ' (' + cfg.unit.trim() + ')' : '');
+      if (k) th.className = 'r';
+      hr.appendChild(th);
+    });
+    var body = t.createTBody(), per = cfg.hourly ? 1 : 60 / MIN;
+    for (var i = per - 1; i < cfg.series[0].values.length; i += per) {
+      var row = body.insertRow(), c0 = row.insertCell();
+      c0.textContent = when(cfg, i);
+      cfg.series.forEach(function (s) {
+        var c = row.insertCell();
+        c.className = 'r';
+        c.textContent = s.values[i].toFixed(cfg.fmt);
+      });
+    }
+    host.appendChild(t);
+  }
+
+  var ids = Object.keys(CHARTS);
+  ids.forEach(function (id) { draw(id); table(id); });
+  var timer = null, lastW = window.innerWidth;
+  window.addEventListener('resize', function () {
+    if (window.innerWidth === lastW) return;
+    lastW = window.innerWidth;
+    clearTimeout(timer);
+    timer = setTimeout(function () { ids.forEach(draw); }, 150);
+  }, { passive: true });
+})();
+</script>
+
+</body>
+</html>
