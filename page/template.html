@@ -129,6 +129,8 @@
 
         <p>I gave it the same fault in two places: a cooling-water valve that sticks, once on the reactor and once on the condenser, both from 08:00. A standard monitor raised an alarm on the first within {{F14_ALARM_DELAY}} minutes. On the second, over the next forty hours, it flagged about as often as it does on a normal day.</p>
 
+        <p>Then I set the result against published studies of the same simulator, and tried simple checks of my own that do catch the second valve, on runs they had never seen (sections 08 to 10). They beat the plain monitors, and fall far short of the methods built for this fault.</p>
+
         <h2><span class="sn">01</span>One plant, run twice</h2>
 
         <p>The data is a public dataset (Rieth and colleagues, 2017) of 21,000 simulated runs of the Tennessee Eastman process. I scored faults on its 48-hour test runs. In those, each faulty run has a twin: for the first eight hours it matches a normal run value for value. At 08:00 the fault switches on and the two days split. I checked this for all {{TWIN_RUNS_CHECKED}} faulty runs used here.</p>
@@ -230,17 +232,73 @@
 
         <p>For valve one, the monitor answers the first and third on its own: something is wrong, since {{F14_ALARM_TIME}}. The note adds which valve, and that its stem is sticking.</p>
 
-        <h2><span class="sn">08</span>How this was done</h2>
+        <h2><span class="sn">08</span>How it compares</h2>
+
+        <p>On valve one, every study that reports it catches {{LIT_F14_LOW}} to {{LIT_F14_HIGH}}% of samples after the fault, as this monitor does. Valve two splits them. Plain PCA stays close to its own normal-day rate, and Chiang and Braatz (2003), from the group that published the original data, call this fault unobservable. A study of window statistics did not detect it at all. But methods built for it do much better: Shang and Chen (2018) report over 95% in their abstract, and Agarwal and colleagues (2020) reach 100% with a neural network trained on labelled examples of the fault, while nudging a setpoint every four hours to make it show.</p>
+
+        <p>Read each row across: what a method flags after the fault, against what it flags on normal data. Alarm limits differ from study to study, and some used their own simulations of the same plant, so this is a map, not a race. Published figures are as reported in their papers. The rows marked <strong>Mine</strong> are the checks in sections 09 and 10, measured by the code behind this page on {{CC_HELD_RUNS}} runs they never saw.</p>
+
+        <div class="tablewrap">
+          <table class="lab-table num">
+            <thead><tr><th scope="col">Who</th><th scope="col">Whose method</th><th scope="col">Method</th><th scope="col" class="r">Valve two: readings flagged after the fault</th><th scope="col" class="r">Flagged on normal data</th><th scope="col">Note</th></tr></thead>
+            <tbody>
+{{LIT_ROWS}}
+            </tbody>
+          </table>
+        </div>
+
+        <h2><span class="sn">09</span>A check that catches valve two</h2>
+
+        <p>The PCA monitor judges all 52 values together, every three minutes. Valve two leaves a smaller, more specific trace: the sticking valve adds fast jitter to the condenser cooling-water outlet temperature, {{CC_TAG}}, the reading that moved most in section 04.</p>
+
+        <p>So I tried a check that asks what someone reviewing that loop would ask: has this reading been jumpier than normal over the last day? Jitter here is the variance of its sample-to-sample changes over the last {{CC_HOURS}} hours. The limit comes from the 500 normal training runs alone, at the level {{CC_PCTL}}% of their windows stay below. Three flags in a row make an alarm, as before.</p>
+
+        <p>I designed it after looking at fault runs 1 to {{CC_DESIGN_LAST}}, where it alarms on {{CC_DEV_FAULT}} of them and on {{CC_DEV_TWINS}} of their twins. Those runs cannot test it fairly. The dataset holds {{CC_HELD_RUNS}} more runs of this fault, {{CC_HELD_FIRST}} to {{CC_HELD_LAST}}, each with its own normal twin. I left them unopened until the check was fixed, then ran both monitors on them.</p>
+
+        <p>On the unseen runs it separates the two: {{CC_HO_FAULT_PCT}}% of the faulty runs alarm, against {{CC_HO_TWIN_PCT}}% of their twins, where the PCA monitor manages {{PCA_HO_FAULT_PCT}}% against {{PCA_HO_TWIN_PCT}}%. It also raises fewer false alarms on normal running: {{CC_NORMAL_RUNS}} of {{NORMAL_RUNS}} normal runs, against {{PCA_NORMAL_RUNS_AFTER}} for PCA. It flags {{CC_HO_FLAG}}% of samples after the fault: more than the plain monitors in section 08, far less than the methods built for this fault.</p>
+
+        <p>It has three limits. It is slow: a typical alarm comes {{CC_HO_DELAY}} hours after the valve starts sticking, because it needs most of a day of data. A version looking back {{CC_SHIFT_HOURS}} hours alarms sooner, in about {{CC_SHIFT_DELAY}} hours, but also on {{CC_SHIFT_TWIN_PCT}}% of the twins. It watches one loop, so you have to know which loop to watch. And it says the loop got jumpier, not why: it also alarms in at least half the runs of {{CC_OTHER_N}} other faults ({{CC_OTHER_LIST}}), including faults 12 and 18, which disturb the condenser's cooling-water inlet temperature and its heat transfer.</p>
+
+        <p>So it is not an alarm that says what broke. It is a once-a-day loop-health check that says which loop to walk out to.</p>
+
+        <h2><span class="sn">10</span>Three more tries</h2>
+
+        <p>I then tried three ways to do better, chosen the same way: every setting fixed on fault runs 1 to {{CC_DESIGN_LAST}}, every limit from normal runs only, then one test on the {{CC_HELD_RUNS}} unseen runs.</p>
 
         <ul class="method">
-          <li><strong>Data.</strong> Rieth, Amsel, Tran and Cook (2017), Harvard Dataverse, public domain. The three files used were checksum-verified at download: 500 normal runs to train, 500 more to measure false alarms, and test runs 1 to 20 of each of the 20 faults.</li>
+          <li><strong>Four readings together.</strong> The jitter of the four readings that moved most, over the last eight hours, added up.</li>
+          <li><strong>An accumulating alarm.</strong> The same one reading, but each jumpier-than-normal change adds to a running total (a CUSUM), so a small, steady excess can raise the alarm before a full day has passed.</li>
+          <li><strong>All 52 readings.</strong> The jitter of every recorded value over twelve hours, fed to a PCA monitor of its own, close in spirit to window-statistics methods.</li>
+        </ul>
+
+        <div class="tablewrap">
+          <table class="lab-table num">
+            <thead><tr><th scope="col">Unseen runs {{CC_HELD_FIRST}} to {{CC_HELD_LAST}}</th><th scope="col">Whose method</th><th scope="col" class="r">Faulty runs that alarmed (higher is better)</th><th scope="col" class="r">Their twins that alarmed (lower is better)</th><th scope="col" class="r">Normal runs that alarmed after 08:00</th><th scope="col" class="r">Readings flagged after the fault</th><th scope="col" class="r">Typical time to alarm</th></tr></thead>
+            <tbody>
+{{CHECK_ROWS}}
+            </tbody>
+          </table>
+        </div>
+
+        <p>The accumulating alarm is the strongest of mine: it catches {{CU_HO_FAULT_PCT}}% of the unseen faulty runs, flags {{CU_HO_FLAG}}% of samples after the fault, and alarms sooner, typically after {{CU_HO_DELAY}} hours. The price is false alarms: {{CU_HO_TWIN_PCT}}% of the twins alarm, against {{CC_HO_TWIN_PCT}}% for the one-day check, and {{CU_NORMAL_RUNS}} of {{NORMAL_RUNS}} normal runs. On the twenty design runs that price did not show ({{CU_DEV_TWINS}} of 20 twins), which is exactly why the unseen runs matter.</p>
+
+        <p>Four readings together caught about as many as one, with more false alarms. All 52 readings barely told the faulty runs from their twins ({{A52_HO_FAULT_PCT}}% against {{A52_HO_TWIN_PCT}}%). Both also alarm on most of the other faults ({{MU_OTHER_N}} and {{A52_OTHER_N}} of {{OTHER_FAULTS}}): the extra readings add more noise than signal for this fault.</p>
+
+        <p>None of mine comes near the methods built for this fault. A simple check on one loop can catch it, slowly. Catching it fast, without false alarms, takes more than a simple check.</p>
+
+        <h2><span class="sn">11</span>How this was done</h2>
+
+        <ul class="method">
+          <li><strong>Data.</strong> Rieth, Amsel, Tran and Cook (2017), Harvard Dataverse, public domain. The three files used were checksum-verified at download: 500 normal runs to train, 500 more to measure false alarms, and test runs 1 to 20 of each of the 20 faults. Runs {{CC_HELD_FIRST}} to {{CC_HELD_LAST}} of fault 15 were kept unopened to test the condenser check.</li>
           <li><strong>Names.</strong> Recorded values, fault types and the short descriptions of faults 16 to 20 follow the model code in N. L. Ricker's Tennessee Eastman archive, which marks 16 to 20 as unknown. Where that code says the separator's cooling water, I say the condenser's, as Du and Du do.</li>
           <li><strong>Monitor.</strong> PCA on the 52 standardised values, {{COMPONENTS}} components ({{CPV}}% of the variance), Hotelling T² and SPE limits at 99%. A sample is flagged when either crosses its limit. An alarm is three flags in a row, timed at the third.</li>
-          <li><strong>Measured.</strong> The flag rate on 480,000 normal samples, and the flag rate, alarm count and alarm delay for all 20 faults. Full table below.</li>
+          <li><strong>Condenser check.</strong> The variance of the sample-to-sample changes of {{CC_TAG}} over the last {{CC_HOURS}} hours (and {{CC_SHIFT_HOURS}} hours), flagged above the level {{CC_PCTL}}% of the normal training windows stay below, with the same alarm rule. Designed on fault runs 1 to {{CC_DESIGN_LAST}}, tested on runs {{CC_HELD_FIRST}} to {{CC_HELD_LAST}}.</li>
+          <li><strong>Three more tries.</strong> Four readings: z-scored log-variance of their changes over 8 hours, summed. Accumulating alarm: CUSUM on the squared change of {{CC_TAG}}, against its normal mean, with the reference value set at half the design runs' excess. All 52 readings: log-variance of every value's changes over 12 hours, PCA with T² and SPE against empirical 99% limits. Same design and test runs as the condenser check.</li>
+          <li><strong>Measured.</strong> The flag rate on 480,000 normal samples, the flag rate, alarm count and alarm delay for all 20 faults, and every check on the {{CC_HELD_RUNS}} unseen runs. Full table below.</li>
           <li><strong>Checked.</strong> A second implementation, written separately, reproduced every measured number quoted in the text. Changing the tuning (80, 90 or 95% of the variance, or a 99.9% limit) does not change the picture.</li>
           <li><strong>Tools.</strong> Python (numpy, pandas, scipy). The 837 MB R data file is read by a small streaming reader written for this, which matched a reference reader value for value on the two normal-running files. Charts are plain SVG. I wrote the pipeline with an AI coding assistant, to my specification; every number on the page comes from that code and its separate re-check.</li>
           <li><strong>Code.</strong> The whole pipeline is public <a href="https://github.com/GolemOST/same-fault-two-valves" rel="noopener">on GitHub</a>, with the steps to download the data and re-run every number yourself.</li>
-          <li><strong>Not claimed.</strong> This is a simulation, not a plant, and it tests one kind of monitor. The field notes are fiction. Neither the dataset's authors nor Pacific Science &amp; Engineering Group reviewed or endorse this page.</li>
+          <li><strong>Not claimed.</strong> This is a simulation, not a plant. It tests one standard monitor and four simple checks of my own, each designed after seeing part of the data, then tested on runs it had not seen. None is the best published result for this fault. The field notes are fiction. Other studies' figures are as reported in their papers, not re-run here. Neither the dataset's authors nor Pacific Science &amp; Engineering Group reviewed or endorse this page.</li>
         </ul>
 
         <details>
@@ -274,7 +332,7 @@
 
         <p>Which valve on your plant would you bet is sticking right now, with every screen reading normal?</p>
 
-        <p class="sources">Sources: <a href="https://doi.org/10.7910/DVN/6C3JR1" rel="noopener">Rieth, Amsel, Tran, Cook (2017), Additional Tennessee Eastman Process Simulation Data for Anomaly Detection Evaluation, Harvard Dataverse</a> · Downs &amp; Vogel (1993), A plant-wide industrial process control problem, Computers &amp; Chemical Engineering 17(3) · <a href="https://depts.washington.edu/control/LARRY/TE/download.html" rel="noopener">N. L. Ricker, Tennessee Eastman Challenge Archive</a> · <a href="https://arxiv.org/abs/1911.04386" rel="noopener">Sun, Paiva, Xu, Sundaram, Braatz (2020), Fault Detection and Identification using Bayesian Recurrent Neural Networks</a> · <a href="https://skoge.folk.ntnu.no/prost/proceedings/ADCHEM-2018/media/files/0146.pdf" rel="noopener">Du &amp; Du (2018), ADCHEM</a></p>
+        <p class="sources">Sources: <a href="https://doi.org/10.7910/DVN/6C3JR1" rel="noopener">Rieth, Amsel, Tran, Cook (2017), Additional Tennessee Eastman Process Simulation Data for Anomaly Detection Evaluation, Harvard Dataverse</a> · Downs &amp; Vogel (1993), A plant-wide industrial process control problem, Computers &amp; Chemical Engineering 17(3) · <a href="https://depts.washington.edu/control/LARRY/TE/download.html" rel="noopener">N. L. Ricker, Tennessee Eastman Challenge Archive</a> · <a href="https://arxiv.org/abs/1911.04386" rel="noopener">Sun, Paiva, Xu, Sundaram, Braatz (2020), Fault Detection and Identification using Bayesian Recurrent Neural Networks</a> · <a href="https://skoge.folk.ntnu.no/prost/proceedings/ADCHEM-2018/media/files/0146.pdf" rel="noopener">Du &amp; Du (2018), ADCHEM</a> · <a href="https://web.mit.edu/braatzgroup/54_Process_monitoring_using_causal_map_and_multivariate_statistics_fault_detection_and_identification.pdf" rel="noopener">Chiang &amp; Braatz (2003), Process monitoring using causal map and multivariate statistics, Chemometrics and Intelligent Laboratory Systems 65</a> · <a href="https://arxiv.org/abs/1712.04118" rel="noopener">Zhao (2017), Neural Component Analysis for Fault Detection</a> · <a href="https://web.mit.edu/braatzgroup/Lu_JProcessControl_2018.pdf" rel="noopener">Lu, Jiang, Gopaluni, Loewen, Braatz (2018), Sparse canonical variate analysis approach for process monitoring, Journal of Process Control 71</a> · <a href="https://arxiv.org/abs/2103.07303" rel="noopener">Peng, Zhao, Hu (2021), Second-Order Component Analysis for Fault Detection, Journal of Process Control 108</a> · <a href="https://arxiv.org/abs/2012.03861" rel="noopener">Agarwal, Mireles Gonzalez, Elkamel, Budman (2020), Hierarchical Deep Recurrent Neural Network based Method for Fault Detection and Diagnosis</a> · <a href="https://search.napstic.cn/literature/periodical/0220180600226670" rel="noopener">Shang &amp; Chen (2018), Recursive Dynamic Transformed Component Statistical Analysis for Fault Detection in Dynamic Processes, IEEE Transactions on Industrial Electronics (abstract)</a> · <a href="https://skoge.folk.ntnu.no/prost/proceedings/cpc8-focapo-2012/data/papers/055.pdf" rel="noopener">Galicia, He, Wang (2012), Statistics Pattern Analysis based Fault Detection and Diagnosis, FOCAPO</a></p>
       </div>
     </div>
 

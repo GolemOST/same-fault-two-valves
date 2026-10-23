@@ -1,0 +1,195 @@
+{
+  "signal": {
+    "column": "xmeas_22",
+    "tag": "XMEAS(22)",
+    "name": "Condenser cooling water outlet temperature"
+  },
+  "limit_percentile": 99,
+  "fires_on_share": 0.5,
+  "design_runs": [
+    1,
+    20
+  ],
+  "holdout_runs": [
+    21,
+    500
+  ],
+  "holdout_run_count": 480,
+  "holdout_twins_checked": 480,
+  "windows": {
+    "480": {
+      "window_samples": 480,
+      "window_hours": 24,
+      "limit": 0.1141065633332503,
+      "design": {
+        "fault": {
+          "runs": 20,
+          "flagged_pct_after_onset": 32.38,
+          "runs_alarmed": 19,
+          "runs_alarmed_pct": 95.0,
+          "median_alarm_delay_h": 19.8
+        },
+        "twins": {
+          "runs": 20,
+          "flagged_pct_after_onset": 0.18,
+          "runs_alarmed": 2,
+          "runs_alarmed_pct": 10.0,
+          "median_alarm_delay_h": 34.7
+        }
+      },
+      "holdout": {
+        "fault": {
+          "runs": 480,
+          "flagged_pct_after_onset": 30.93,
+          "runs_alarmed": 429,
+          "runs_alarmed_pct": 89.4,
+          "median_alarm_delay_h": 18.4
+        },
+        "twins": {
+          "runs": 480,
+          "flagged_pct_after_onset": 0.91,
+          "runs_alarmed": 38,
+          "runs_alarmed_pct": 7.9,
+          "median_alarm_delay_h": 17.8
+        }
+      },
+      "normal": {
+        "runs": 500,
+        "flagged_pct_after_onset": 0.88,
+        "runs_alarmed": 40,
+        "runs_alarmed_pct": 8.0,
+        "median_alarm_delay_h": 19.0
+      },
+      "other_faults_runs_alarmed": {
+        "1": 2,
+        "2": 16,
+        "3": 2,
+        "4": 2,
+        "5": 0,
+        "6": 0,
+        "7": 2,
+        "8": 5,
+        "9": 2,
+        "10": 2,
+        "11": 4,
+        "12": 20,
+        "13": 4,
+        "14": 3,
+        "16": 2,
+        "17": 11,
+        "18": 20,
+        "19": 8,
+        "20": 20
+      },
+      "fires_on_faults": [
+        2,
+        12,
+        17,
+        18,
+        20
+      ],
+      "fires_on_names": {
+        "2": "B composition of stream 4, A/C ratio constant",
+        "12": "Condenser cooling water inlet temperature",
+        "17": "(unknown) Heat transfer within the reactor",
+        "18": "(unknown) Heat transfer within the condenser",
+        "20": "(unknown)"
+      }
+    },
+    "160": {
+      "window_samples": 160,
+      "window_hours": 8,
+      "limit": 0.13035935065970375,
+      "design": {
+        "fault": {
+          "runs": 20,
+          "flagged_pct_after_onset": 12.64,
+          "runs_alarmed": 18,
+          "runs_alarmed_pct": 90.0,
+          "median_alarm_delay_h": 11.1
+        },
+        "twins": {
+          "runs": 20,
+          "flagged_pct_after_onset": 0.35,
+          "runs_alarmed": 2,
+          "runs_alarmed_pct": 10.0,
+          "median_alarm_delay_h": 26.1
+        }
+      },
+      "holdout": {
+        "fault": {
+          "runs": 480,
+          "flagged_pct_after_onset": 14.26,
+          "runs_alarmed": 421,
+          "runs_alarmed_pct": 87.7,
+          "median_alarm_delay_h": 13.2
+        },
+        "twins": {
+          "runs": 480,
+          "flagged_pct_after_onset": 0.79,
+          "runs_alarmed": 83,
+          "runs_alarmed_pct": 17.3,
+          "median_alarm_delay_h": 17.1
+        }
+      },
+      "normal": {
+        "runs": 500,
+        "flagged_pct_after_onset": 0.77,
+        "runs_alarmed": 85,
+        "runs_alarmed_pct": 17.0,
+        "median_alarm_delay_h": 17.1
+      },
+      "other_faults_runs_alarmed": {
+        "1": 2,
+        "2": 18,
+        "3": 2,
+        "4": 2,
+        "5": 6,
+        "6": 0,
+        "7": 6,
+        "8": 5,
+        "9": 2,
+        "10": 2,
+        "11": 3,
+        "12": 20,
+        "13": 5,
+        "14": 4,
+        "16": 2,
+        "17": 13,
+        "18": 20,
+        "19": 7,
+        "20": 20
+      },
+      "fires_on_faults": [
+        2,
+        12,
+        17,
+        18,
+        20
+      ],
+      "fires_on_names": {
+        "2": "B composition of stream 4, A/C ratio constant",
+        "12": "Condenser cooling water inlet temperature",
+        "17": "(unknown) Heat transfer within the reactor",
+        "18": "(unknown) Heat transfer within the condenser",
+        "20": "(unknown)"
+      }
+    }
+  },
+  "pca_holdout": {
+    "fault": {
+      "runs": 480,
+      "flagged_pct_after_onset": 2.38,
+      "runs_alarmed": 147,
+      "runs_alarmed_pct": 30.6,
+      "median_alarm_delay_h": 17.1
+    },
+    "twins": {
+      "runs": 480,
+      "flagged_pct_after_onset": 2.05,
+      "runs_alarmed": 131,
+      "runs_alarmed_pct": 27.3,
+      "median_alarm_delay_h": 18.1
+    }
+  }
+}

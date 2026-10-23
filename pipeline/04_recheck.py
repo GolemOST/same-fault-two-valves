@@ -1,11 +1,13 @@
 """
 Independent re-check of EVERY measured number the page quotes (out/monitor.json,
-out/measurements.csv, out/page_data.json).
+out/measurements.csv, out/page_data.json, out/condenser_check.json).
 
-Same definitions as 03_measure.py / 06_export_page.py, different code path: PCA by SVD of
-the data matrix (not eigh of the covariance), limits re-coded from the formulas, alarms found
-with rolling windows (not a loop), rates and ratios with pandas group operations, twins checked
-with a merge. Must agree within tolerance, or exit 1. Run AFTER 06_export_page.py.
+Same definitions as 03_measure.py / 05b_condenser_check.py / 06_export_page.py, different code
+path: PCA by SVD of the data matrix (not eigh of the covariance), limits re-coded from the
+formulas, alarms found with rolling windows (not a loop), rates and ratios with pandas group
+operations, twins checked with a merge, the condenser jitter from running sums (not pandas
+rolling) and its limit by np.quantile. Must agree within tolerance, or exit 1. Run AFTER
+06_export_page.py.
 """
 
 import json
@@ -91,6 +93,192 @@ def alarm_samples(flagged: pd.DataFrame, keys: list[str], after: int) -> pd.Seri
     return first.reindex(late.groupby(keys).size().index)
 
 
+def jitter_sums(values: np.ndarray, window: int) -> np.ndarray:
+    """Variance of the last `window` sample-to-sample changes from running sums; NaN until full."""
+    out = np.full(len(values), np.nan)
+    changes = np.diff(values)
+    if len(changes) < window:
+        return out
+    run1 = np.concatenate(([0.0], np.cumsum(changes)))
+    run2 = np.concatenate(([0.0], np.cumsum(changes * changes)))
+    sum1, sum2 = run1[window:] - run1[:-window], run2[window:] - run2[:-window]
+    out[window:] = (sum2 - sum1 * sum1 / window) / (window - 1)
+    return out
+
+
+def jitter_flag(frame: pd.DataFrame, column: str, window: int, limit: float) -> pd.DataFrame:
+    """The frame, sorted, with `flag` = jitter above the limit (never flagged before the window fills)."""
+    frame = frame.sort_values(["faultNumber", "simulationRun", "sample"]).reset_index(drop=True)
+    values = frame[column].to_numpy(np.float64)
+    jit = np.full(len(frame), np.nan)
+    for rows in frame.groupby(["faultNumber", "simulationRun"]).indices.values():
+        jit[rows] = jitter_sums(values[rows], window)
+    return frame.assign(flag=np.where(np.isnan(jit), False, jit > limit))
+
+
+def rates(flagged: pd.DataFrame, keys: list[str]) -> tuple[float, int, float]:
+    """Flag % after 08:00 (mean over runs), runs with an alarm, median alarm delay in hours."""
+    post = flagged[flagged["sample"] > ONSET]
+    pct = 100 * post.groupby(keys)["flag"].mean().mean()
+    hits = alarm_samples(flagged, keys, ONSET)
+    delay = ((hits.dropna() - ONSET) * STEP_MIN / 60).median() if hits.notna().any() else float("nan")
+    return pct, int(hits.notna().sum()), delay
+
+
+def recheck_condenser(rc: "Recheck", normal_pca: pd.DataFrame) -> None:
+    """Every number in out/condenser_check.json, the second way."""
+    try:
+        with open(OUT_DIR / "condenser_check.json", encoding="utf-8") as handle:
+            cc = json.load(handle)
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: run 05b_condenser_check.py first ({exc})")
+        sys.exit(1)
+    col = cc["signal"]["column"]
+    train = read(PARQUET_DIR / "fault_free_training.parquet")
+    normal = read(PARQUET_DIR / "fault_free_testing.parquet")
+    faulty = read(PARQUET_DIR / "faulty_testing_runs1-20.parquet")
+    held = read(PARQUET_DIR / "faulty15_testing_runs21-500.parquet")
+    lo, hi = cc["holdout_runs"]
+    rc.check("unseen runs: fault 15 only, runs 21-500", held["simulationRun"].nunique()
+             if held["faultNumber"].eq(15).all() and held["simulationRun"].between(lo, hi).all() else -1,
+             cc["holdout_run_count"], 0)
+    pre = held[held["sample"] <= ONSET].merge(normal[normal["sample"] <= ONSET], on=["simulationRun", "sample"],
+                                              suffixes=("", "_t"))
+    same = np.all([np.array_equal(pre[c].to_numpy(), pre[c + "_t"].to_numpy()) for c in COLUMNS])
+    rc.check("unseen runs identical to twin before 08:00", len(pre) / ONSET if same else -1,
+             cc["holdout_twins_checked"], 0)
+    twins_held = normal[normal["simulationRun"].between(lo, hi)]
+    twins_dev = normal[normal["simulationRun"] <= cc["design_runs"][1]]
+    for window, res in cc["windows"].items():
+        win, tag = int(window), f"{res['window_hours']} h check"
+        train_jit = np.concatenate([jitter_sums(g.sort_values("sample")[col].to_numpy(np.float64), win)
+                                    for _r, g in train.groupby("simulationRun")])
+        limit = float(np.quantile(train_jit[~np.isnan(train_jit)], cc["limit_percentile"] / 100))
+        rc.check(f"{tag}: limit", limit, res["limit"], 1e-9)
+        sets = [("unseen fault runs", held, res["holdout"]["fault"]),
+                ("their twins", twins_held, res["holdout"]["twins"]),
+                ("design fault runs 1-20", faulty[faulty["faultNumber"] == 15], res["design"]["fault"]),
+                ("design twins 1-20", twins_dev, res["design"]["twins"]),
+                ("500 normal runs", normal, res["normal"])]
+        for label, frame, reported in sets:
+            pct, alarmed, delay = rates(jitter_flag(frame, col, win, limit), ["simulationRun"])
+            rc.check(f"{tag}: {label} flag %", pct, reported["flagged_pct_after_onset"], PCT_TOL)
+            rc.check(f"{tag}: {label} runs alarmed", alarmed, reported["runs_alarmed"], 0)
+            if reported["median_alarm_delay_h"] is not None:
+                rc.check(f"{tag}: {label} median delay (h)", delay, reported["median_alarm_delay_h"], 0.051)
+        others = jitter_flag(faulty[faulty["faultNumber"] != 15], col, win, limit)
+        hits = alarm_samples(others, ["faultNumber", "simulationRun"], ONSET)
+        per_fault = hits.notna().groupby(level=0).sum()
+        mismatch = sum(int(per_fault.loc[int(f)]) != n for f, n in res["other_faults_runs_alarmed"].items())
+        rc.check(f"{tag}: other faults, runs alarmed (mismatches)", mismatch, 0, 0)
+        fires = sorted(int(f) for f, n in per_fault.items() if n >= cc["fires_on_share"] * 20)
+        rc.check(f"{tag}: other faults it fires on (count)", len(fires) if fires == res["fires_on_faults"] else -1,
+                 len(res["fires_on_faults"]), 0)
+    pca_held = rc.flag(held)
+    for label, frame, reported in [("unseen fault runs", pca_held, cc["pca_holdout"]["fault"]),
+                                   ("their twins", normal_pca[normal_pca["simulationRun"].between(lo, hi)],
+                                    cc["pca_holdout"]["twins"])]:
+        pct, alarmed, _delay = rates(frame, ["simulationRun"])
+        rc.check(f"PCA: {label} flag %", pct, reported["flagged_pct_after_onset"], PCT_TOL)
+        rc.check(f"PCA: {label} runs alarmed", alarmed, reported["runs_alarmed"], 0)
+
+
+def recheck_more(rc: "Recheck") -> None:
+    """Every number in out/more_checks.json, the second way: pandas rolling windows (not running sums), PCA by SVD
+    (not eigh), the CUSUM by itertools.accumulate (not a loop), limits by np.quantile, alarms by rolling windows."""
+    import itertools  # pylint: disable=import-outside-toplevel
+    try:
+        with open(OUT_DIR / "more_checks.json", encoding="utf-8") as handle:
+            mc = json.load(handle)
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: run 05c_more_checks.py first ({exc})")
+        sys.exit(1)
+    train = read(PARQUET_DIR / "fault_free_training.parquet")
+    normal = read(PARQUET_DIR / "fault_free_testing.parquet")
+    faulty = read(PARQUET_DIR / "faulty_testing_runs1-20.parquet")
+    held = read(PARQUET_DIR / "faulty15_testing_runs21-500.parquet")
+    lo, hi = mc["holdout_runs"]
+
+    def runs_of(frame):
+        return [g.sort_values("sample") for _, g in frame.groupby(["faultNumber", "simulationRun"])]
+
+    def logvar_pd(g, cols, w):
+        ch = g[cols].astype(np.float64).diff()
+        return np.log(ch.rolling(w, min_periods=w).var().clip(lower=1e-12)).to_numpy()
+
+    def stats_multi(g, s):
+        lv = logvar_pd(g, s["readings"], s["window_samples"])
+        return ((lv - s["_mu"]) / s["_sd"]).sum(axis=1) / np.sqrt(len(s["readings"]))
+
+    def stats_cusum(g, s):
+        z = (g[s["reading"]].astype(np.float64).diff() ** 2 / s["normal_mean_change_sq"] - 1).to_numpy()[1:]
+        acc = list(itertools.accumulate(z, lambda a, zi: max(0.0, a + zi - s["k"]), initial=0.0))
+        return np.concatenate([[np.nan], acc[1:]])
+
+    def stats_all52(g, s):
+        f = logvar_pd(g, COLUMNS, s["window_samples"])
+        zf = (f - s["_mu"]) / s["_sd"]
+        t = zf @ s["_basis"]
+        t2 = (t ** 2 / s["_var"]).sum(axis=1)
+        spe = ((zf - t @ s["_basis"].T) ** 2).sum(axis=1)
+        return np.maximum(t2 / s["t2_limit"], spe / s["spe_limit"])
+
+    tr_runs = runs_of(train)
+    sets = {"design_fault": faulty[faulty["faultNumber"] == 15], "design_twins": normal[normal["simulationRun"] <= 20],
+            "holdout_fault": held, "holdout_twins": normal[normal["simulationRun"].between(lo, hi)], "normal": normal}
+    for key, res in mc["checks"].items():
+        s = dict(res["settings"])
+        if key == "multi":
+            lv = np.vstack([logvar_pd(g, s["readings"], s["window_samples"]) for g in tr_runs])
+            s["_mu"], s["_sd"] = np.nanmean(lv, axis=0), np.nanstd(lv, axis=0)
+            fn = stats_multi
+        elif key == "cusum":
+            ch2 = np.concatenate([g[s["reading"]].astype(np.float64).diff().to_numpy()[1:] ** 2 for g in tr_runs])
+            rc.check("more: CUSUM normal mean change²", ch2.mean(), s["normal_mean_change_sq"], 1e-9 * ch2.mean())
+            d15 = sets["design_fault"]
+            exc = np.concatenate([(g[s["reading"]].astype(np.float64).diff().to_numpy()[1:] ** 2 / ch2.mean() - 1)[ONSET:]
+                                  for g in runs_of(d15)])
+            rc.check("more: CUSUM k (half the design excess)", 0.5 * exc.mean(), s["k"], 1e-9)
+            fn = stats_cusum
+        else:
+            a = np.vstack([logvar_pd(g, COLUMNS, s["window_samples"]) for g in tr_runs])
+            a = a[~np.isnan(a).any(axis=1)]
+            mu, sd = a.mean(axis=0), a.std(axis=0, ddof=1)
+            z = (a - mu) / sd
+            _u, sing, vt = np.linalg.svd(z, full_matrices=False)
+            var = sing ** 2 / (z.shape[0] - 1)
+            npc = int(np.argmax(var.cumsum() / var.sum() >= 0.90)) + 1
+            rc.check("more: ALL52 components", npc, s["components"], 0)
+            s["_mu"], s["_sd"], s["_basis"], s["_var"] = mu, sd, vt[:npc].T, var[:npc]
+            t = z @ s["_basis"]
+            rc.check("more: ALL52 T² limit", float(np.quantile((t ** 2 / s["_var"]).sum(axis=1), 0.99)), s["t2_limit"],
+                     1e-6 * s["t2_limit"])
+            rc.check("more: ALL52 SPE limit", float(np.quantile(((z - t @ s["_basis"].T) ** 2).sum(axis=1), 0.99)),
+                     s["spe_limit"], 1e-6 * s["spe_limit"])
+            fn = stats_all52
+        tr_stats = np.concatenate([fn(g, s) for g in tr_runs])
+        limit = float(np.quantile(tr_stats[~np.isnan(tr_stats)], mc["limit_percentile"] / 100))
+        rc.check(f"more: {key} limit", limit, res["limit"], 1e-6 * max(1.0, abs(res["limit"])))
+
+        def flagged(frame, fn=fn, s=s, limit=limit):
+            parts = []
+            for g in runs_of(frame):
+                st = fn(g, s)
+                parts.append(g[["faultNumber", "simulationRun", "sample"]].assign(flag=np.where(np.isnan(st), False, st > limit)))
+            return pd.concat(parts, ignore_index=True)
+        for label, frame in sets.items():
+            pct, alarmed, delay = rates(flagged(frame), ["simulationRun"])
+            rep = res[label]
+            rc.check(f"more: {key} {label} flag %", pct, rep["flagged_pct_after_onset"], PCT_TOL)
+            rc.check(f"more: {key} {label} runs alarmed", alarmed, rep["runs_alarmed"], 0)
+            if rep["median_alarm_delay_h"] is not None:
+                rc.check(f"more: {key} {label} median delay (h)", delay, rep["median_alarm_delay_h"], 0.051)
+        hits = alarm_samples(flagged(faulty[faulty["faultNumber"] != 15]), ["faultNumber", "simulationRun"], ONSET)
+        per_fault = hits.notna().groupby(level=0).sum()
+        mismatch = sum(int(per_fault.loc[int(f)]) != n for f, n in res["other_faults_runs_alarmed"].items())
+        rc.check(f"more: {key} other faults, runs alarmed (mismatches)", mismatch, 0, 0)
+
+
 def std_ratio(fault_frame: pd.DataFrame, twin_frame: pd.DataFrame, col: str) -> float:
     """Median over runs of post-onset std (fault) / std (twin)."""
     f_sd = fault_frame[fault_frame["sample"] > ONSET].groupby("simulationRun")[col].std()
@@ -162,6 +350,9 @@ def main() -> None:  # pylint: disable=too-many-locals,too-many-statements
     t_sd = twin6.groupby(hour)["xmeas_22"].std().to_numpy()
     rc.check("fault 15 run hourly spread ratio XMEAS(22)", f_sd[8:].mean() / t_sd[8:].mean(),
              f15["spread_hourly"]["ratio_after_onset"], 0.0051)
+
+    recheck_condenser(rc, normal)
+    recheck_more(rc)
 
     if rc.failed:
         print("ERROR: recheck disagrees - do not publish these numbers")

@@ -4,9 +4,10 @@ Turn the Rieth 2017 .RData files into small Parquet files the analysis can load 
     python pipeline/02_extract.py --check   # prove rstream == rdata on a real file, then stop
     python pipeline/02_extract.py           # extract all three files to data/parquet/
 
-Kept: every fault-free run (training + testing), and runs 1..RUNS_PER_FAULT of each fault in
-Faulty_Testing. Process variables stored as float32 (source values carry ~5 significant
-digits); ids as int16.
+Kept: every fault-free run (training + testing), runs 1..RUNS_PER_FAULT of each fault in
+Faulty_Testing, and runs HOLDOUT_RUNS of fault HOLDOUT_FAULT in a separate file: those runs
+were never looked at while the condenser check (05b) was designed, so they test it fairly.
+Process variables stored as float32 (source values carry ~5 significant digits); ids as int16.
 """
 
 import sys
@@ -23,11 +24,15 @@ LAB_DIR = Path(__file__).resolve().parent.parent
 RAW_DIR = LAB_DIR / "data" / "raw"
 PARQUET_DIR = LAB_DIR / "data" / "parquet"
 RUNS_PER_FAULT = 20
+HOLDOUT_FAULT, HOLDOUT_RUNS = 15, (21, 500)
 ID_COLUMNS = ("faultNumber", "simulationRun", "sample")
+# (raw file, parquet file, rows kept: None = all, else (fault or None = every fault, first run, last run))
 JOBS = [
     ("TEP_FaultFree_Training.RData", "fault_free_training.parquet", None),
     ("TEP_FaultFree_Testing.RData", "fault_free_testing.parquet", None),
-    ("TEP_Faulty_Testing.RData", "faulty_testing_runs1-20.parquet", RUNS_PER_FAULT),
+    ("TEP_Faulty_Testing.RData", "faulty_testing_runs1-20.parquet", (None, 1, RUNS_PER_FAULT)),
+    ("TEP_Faulty_Testing.RData", f"faulty{HOLDOUT_FAULT}_testing_runs{HOLDOUT_RUNS[0]}-{HOLDOUT_RUNS[1]}.parquet",
+     (HOLDOUT_FAULT, *HOLDOUT_RUNS)),
 ]
 
 
@@ -38,12 +43,16 @@ def require(path: Path) -> None:
         sys.exit(1)
 
 
-def stream(path: Path, max_run: int | None) -> dict[str, np.ndarray]:
-    """Read one file with the streaming reader, optionally keeping runs <= max_run."""
+def stream(path: Path, keep: tuple[int | None, int, int] | None) -> dict[str, np.ndarray]:
+    """Read one file with the streaming reader, optionally keeping only (fault, first run, last run)."""
     row_filter = None
-    if max_run is not None:
+    if keep is not None:
+        fault, first_run, last_run = keep
+
         def row_filter(cols: dict[int, np.ndarray]) -> np.ndarray:
-            return cols[1] <= max_run  # column 1 = simulationRun
+            # column 0 = faultNumber, column 1 = simulationRun
+            mask = (cols[1] >= first_run) & (cols[1] <= last_run)
+            return mask if fault is None else mask & (cols[0] == fault)
     try:
         _name, columns = read_dataframe(path, row_filter, filter_after=1)
     except (RFormatError, OSError, EOFError) as exc:
@@ -78,7 +87,7 @@ def check_one(rdata, path: Path) -> None:  # noqa: ANN001  (module object)
         sys.exit(1)
     for max_run in (None, 7):
         label = "all rows" if max_run is None else f"runs <= {max_run}"
-        mine = stream(path, max_run)
+        mine = stream(path, None if max_run is None else (None, 1, max_run))
         ref = frame if max_run is None else frame[frame["simulationRun"] <= max_run]
         if list(mine) != list(ref.columns):
             print(f"FAIL ({label}): column names differ")
@@ -108,12 +117,12 @@ def to_frame(columns: dict[str, np.ndarray]) -> pd.DataFrame:
 def extract() -> None:
     """Extract every job to Parquet and print what was kept."""
     PARQUET_DIR.mkdir(parents=True, exist_ok=True)
-    for raw_name, out_name, max_run in JOBS:
+    for raw_name, out_name, keep in JOBS:
         source = RAW_DIR / raw_name
         require(source)
         started = time.time()
         tracemalloc.start()
-        frame = to_frame(stream(source, max_run))
+        frame = to_frame(stream(source, keep))
         _current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
         target = PARQUET_DIR / out_name

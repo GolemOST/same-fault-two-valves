@@ -1,0 +1,256 @@
+{
+  "limit_percentile": 99,
+  "design_runs": [
+    1,
+    20
+  ],
+  "holdout_runs": [
+    21,
+    500
+  ],
+  "checks": {
+    "multi": {
+      "name": "Four linked readings, 8 h",
+      "settings": {
+        "readings": [
+          "xmeas_22",
+          "xmeas_11",
+          "xmeas_16",
+          "xmeas_18"
+        ],
+        "window_samples": 160
+      },
+      "limit": 3.65739049395571,
+      "design_fault": {
+        "runs": 20,
+        "flagged_pct_after_onset": 12.36,
+        "runs_alarmed": 18,
+        "runs_alarmed_pct": 90.0,
+        "median_alarm_delay_h": 9.5
+      },
+      "design_twins": {
+        "runs": 20,
+        "flagged_pct_after_onset": 0.49,
+        "runs_alarmed": 3,
+        "runs_alarmed_pct": 15.0,
+        "median_alarm_delay_h": 14.2
+      },
+      "holdout_fault": {
+        "runs": 480,
+        "flagged_pct_after_onset": 15.97,
+        "runs_alarmed": 432,
+        "runs_alarmed_pct": 90.0,
+        "median_alarm_delay_h": 12.3
+      },
+      "holdout_twins": {
+        "runs": 480,
+        "flagged_pct_after_onset": 0.94,
+        "runs_alarmed": 90,
+        "runs_alarmed_pct": 18.8,
+        "median_alarm_delay_h": 18.2
+      },
+      "normal": {
+        "runs": 500,
+        "flagged_pct_after_onset": 0.92,
+        "runs_alarmed": 93,
+        "runs_alarmed_pct": 18.6,
+        "median_alarm_delay_h": 18.1
+      },
+      "other_faults_runs_alarmed": {
+        "1": 20,
+        "2": 14,
+        "3": 3,
+        "4": 3,
+        "5": 20,
+        "6": 17,
+        "7": 20,
+        "8": 20,
+        "9": 3,
+        "10": 20,
+        "11": 9,
+        "12": 20,
+        "13": 20,
+        "14": 7,
+        "16": 20,
+        "17": 20,
+        "18": 20,
+        "19": 20,
+        "20": 20
+      },
+      "fires_on_faults": [
+        1,
+        2,
+        5,
+        6,
+        7,
+        8,
+        10,
+        12,
+        13,
+        16,
+        17,
+        18,
+        19,
+        20
+      ]
+    },
+    "cusum": {
+      "name": "Accumulating alarm (CUSUM) on one reading",
+      "settings": {
+        "reading": "xmeas_22",
+        "normal_mean_change_sq": 0.09860730087703919,
+        "design_excess": 0.1733020628065489,
+        "k": 0.08665103140327444
+      },
+      "limit": 48.3778316326139,
+      "design_fault": {
+        "runs": 20,
+        "flagged_pct_after_onset": 49.07,
+        "runs_alarmed": 19,
+        "runs_alarmed_pct": 95.0,
+        "median_alarm_delay_h": 10.7
+      },
+      "design_twins": {
+        "runs": 20,
+        "flagged_pct_after_onset": 0.19,
+        "runs_alarmed": 2,
+        "runs_alarmed_pct": 10.0,
+        "median_alarm_delay_h": 26.4
+      },
+      "holdout_fault": {
+        "runs": 480,
+        "flagged_pct_after_onset": 44.54,
+        "runs_alarmed": 441,
+        "runs_alarmed_pct": 91.9,
+        "median_alarm_delay_h": 14.4
+      },
+      "holdout_twins": {
+        "runs": 480,
+        "flagged_pct_after_onset": 2.37,
+        "runs_alarmed": 85,
+        "runs_alarmed_pct": 17.7,
+        "median_alarm_delay_h": 14.6
+      },
+      "normal": {
+        "runs": 500,
+        "flagged_pct_after_onset": 2.29,
+        "runs_alarmed": 87,
+        "runs_alarmed_pct": 17.4,
+        "median_alarm_delay_h": 14.6
+      },
+      "other_faults_runs_alarmed": {
+        "1": 2,
+        "2": 17,
+        "3": 2,
+        "4": 2,
+        "5": 5,
+        "6": 0,
+        "7": 4,
+        "8": 7,
+        "9": 2,
+        "10": 2,
+        "11": 4,
+        "12": 20,
+        "13": 5,
+        "14": 3,
+        "16": 2,
+        "17": 12,
+        "18": 20,
+        "19": 9,
+        "20": 20
+      },
+      "fires_on_faults": [
+        2,
+        12,
+        17,
+        18,
+        20
+      ]
+    },
+    "all52": {
+      "name": "All 52 readings, window statistics, 12 h",
+      "settings": {
+        "window_samples": 240,
+        "components": 33,
+        "t2_limit": 55.62159959964527,
+        "spe_limit": 11.271662065377512
+      },
+      "limit": 1.0683516762655532,
+      "design_fault": {
+        "runs": 20,
+        "flagged_pct_after_onset": 4.18,
+        "runs_alarmed": 13,
+        "runs_alarmed_pct": 65.0,
+        "median_alarm_delay_h": 22.1
+      },
+      "design_twins": {
+        "runs": 20,
+        "flagged_pct_after_onset": 1.92,
+        "runs_alarmed": 8,
+        "runs_alarmed_pct": 40.0,
+        "median_alarm_delay_h": 24.3
+      },
+      "holdout_fault": {
+        "runs": 480,
+        "flagged_pct_after_onset": 3.05,
+        "runs_alarmed": 229,
+        "runs_alarmed_pct": 47.7,
+        "median_alarm_delay_h": 19.1
+      },
+      "holdout_twins": {
+        "runs": 480,
+        "flagged_pct_after_onset": 1.93,
+        "runs_alarmed": 178,
+        "runs_alarmed_pct": 37.1,
+        "median_alarm_delay_h": 19.0
+      },
+      "normal": {
+        "runs": 500,
+        "flagged_pct_after_onset": 1.93,
+        "runs_alarmed": 186,
+        "runs_alarmed_pct": 37.2,
+        "median_alarm_delay_h": 19.6
+      },
+      "other_faults_runs_alarmed": {
+        "1": 20,
+        "2": 10,
+        "3": 8,
+        "4": 20,
+        "5": 20,
+        "6": 20,
+        "7": 20,
+        "8": 20,
+        "9": 9,
+        "10": 20,
+        "11": 20,
+        "12": 20,
+        "13": 20,
+        "14": 20,
+        "16": 20,
+        "17": 20,
+        "18": 20,
+        "19": 20,
+        "20": 20
+      },
+      "fires_on_faults": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        19,
+        20
+      ]
+    }
+  }
+}
